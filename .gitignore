@@ -1,0 +1,27 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+.idea/
+
+# Flutter/Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+ios/.generated/
+android/.gradle/
+android/local.properties
+android/key.properties
+android/app/src/main/res/raw/
+*.js
+*.js.map
+*.js.deps
+*.wasm
