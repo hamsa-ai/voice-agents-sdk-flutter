@@ -105,6 +105,28 @@ class HamsaTool {
           'parameters': parameters!.map((p) => p.toJson()).toList(),
         if (required != null) 'required': required,
       };
+
+  /// Converts to OpenAI function-calling format for conversation-init.
+  /// Matches the web SDK's `#convertToolsToLLMTools()` exactly.
+  Map<String, dynamic> toLLMJson() => {
+        'type': 'function',
+        'function': {
+          'name': functionName,
+          'description': description,
+          'parameters': {
+            'type': 'object',
+            'properties': {
+              if (parameters != null)
+                for (final p in parameters!)
+                  p.name: {
+                    'type': p.type,
+                    'description': p.description,
+                  },
+            },
+            'required': required ?? [],
+          },
+        },
+      };
 }
 
 /// A tool call delivered by the Render Engine during an interactive call.

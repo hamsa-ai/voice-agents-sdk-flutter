@@ -26,6 +26,7 @@ class HamsaVoiceService {
     'enter_text',
     'pick_date',
     'ask_yes_no',
+    'show_paths',
   ];
 
   // ── Connect / disconnect ────────────────────────────────────────────────────

@@ -92,17 +92,19 @@ class HamsaVoiceAgent {
           tokenData['jobId'] as String? ??
           agentId;
 
-      debugPrint('[HamsaSDK] [3/5] Connecting to LiveKit room...');
-      final room = await _voiceService.connect(token, url: _liveKitUrl);
-      _setUpListeners(room);
-
-      debugPrint('[HamsaSDK] [4/5] Wiring RPC bridge...');
+      // Wire the RPC bridge BEFORE connecting so _registerRpcHandlers()
+      // sees a non-null onToolCall when connect() is called.
+      debugPrint('[HamsaSDK] [3/5] Wiring RPC bridge...');
       if (interactiveAgent && onToolCall != null) {
         _voiceService.onToolCall = (name, args, callId) {
           debugPrint('[HamsaSDK] 🔔 Tool call received: $name (callId: $callId)');
           onToolCall!.call(HamsaToolCall(name: name, args: args, callId: callId));
         };
       }
+
+      debugPrint('[HamsaSDK] [4/5] Connecting to LiveKit room...');
+      final room = await _voiceService.connect(token, url: _liveKitUrl);
+      _setUpListeners(room);
 
       // ── Room Radar: Log all members every 5s ──────────────────────────────
       _radarTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
@@ -122,6 +124,10 @@ class HamsaVoiceAgent {
       // ── conversation-init ──────────────────────────────────────────────────
       final Map<String, dynamic>? renderEngineParams = interactiveAgent
           ? {
+              // render-agent-* is the current namespace; render-engine-* kept for backward compat.
+              'render-agent': 'true',
+              'render-agent-tools': RenderEngineConstants.toolsJson,
+              'render-agent-system-prompt': RenderEngineConstants.systemPrompt,
               'render-engine': 'true',
               'render-engine-tools': RenderEngineConstants.toolsJson,
               'render-engine-system-prompt': RenderEngineConstants.systemPrompt,
@@ -133,7 +139,7 @@ class HamsaVoiceAgent {
         agentId,
         jobId,
         tools: interactiveAgent
-            ? RenderEngineConstants.voiceAgentTools.map((t) => t.toJson()).toList()
+            ? RenderEngineConstants.voiceAgentTools.map((t) => t.toLLMJson()).toList()
             : null,
         extraParams: renderEngineParams,
       );
@@ -291,14 +297,6 @@ class HamsaVoiceAgent {
       debugPrint('[HamsaSDK] 📡 Track unsubscribed: '
           'kind=${event.track.kind} '
           'from=${event.participant.identity}');
-    });
-
-    // ── Track published by remote ──────────────────────────────────────────
-    _listener!.on<TrackPublishedEvent>((event) {
-      debugPrint('[HamsaSDK] 📤 Remote track published: '
-          'kind=${event.publication.kind} '
-          'by=${event.participant.identity} '
-          'sid=${event.publication.sid}');
     });
 
     // ── Remote participant joined ───────────────────────────────────────────
