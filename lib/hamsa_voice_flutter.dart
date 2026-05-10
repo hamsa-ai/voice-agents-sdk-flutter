@@ -5,58 +5,148 @@ import 'package:livekit_client/livekit_client.dart';
 import 'src/models.dart';
 import 'src/api_service.dart';
 import 'src/voice_service.dart';
+import 'src/render_engine_constants.dart';
+import 'src/calls_config.dart';
 
 export 'src/models.dart';
+export 'src/calls_config.dart';
 
-/// main class for the Hamsa Voice Agent SDK.
-/// use this class to connect to Hamsa AI agents and manage the conversation.
+/// Main class for the Hamsa Voice Agent SDK.
+/// Use [start] to connect to a Hamsa AI agent and manage the conversation.
 class HamsaVoiceAgent {
   final String apiKey;
   final HamsaApiService _apiService;
   final HamsaVoiceService _voiceService = HamsaVoiceService();
-  
+
   HamsaConnectionStatus _status = HamsaConnectionStatus.disconnected;
   HamsaAgentState _agentState = HamsaAgentState.idle;
   EventsListener<RoomEvent>? _listener;
   bool _isPaused = false;
-  
-  // callbacks
+  Timer? _radarTimer;
+
+  // ── Callbacks ───────────────────────────────────────────────────────────────
+
   void Function(HamsaConnectionStatus status)? onConnectionStatusChanged;
   void Function(HamsaAgentState state)? onAgentStateChanged;
   void Function(String text)? onTranscriptionReceived;
   void Function(String text)? onAnswerReceived;
   void Function(String errorMessage)? onError;
 
-  HamsaVoiceAgent({required this.apiKey}) : _apiService = HamsaApiService(apiKey: apiKey);
+  /// Fires when the Render Engine calls a client-side UI tool during an
+  /// interactive call. The app must render the appropriate UI and call
+  /// [resolveToolCall] when the user submits a result.
+  ///
+  /// [toolCall.name] is one of: show_options, confirm_data, show_summary,
+  /// enter_number, enter_text, pick_date, ask_yes_no, show_info,
+  /// dismiss_tool_ui, prefill_active_tool.
+  void Function(HamsaToolCall toolCall)? onToolCall;
+
+  // ── Constructor / getters ───────────────────────────────────────────────────
+
+  HamsaVoiceAgent({
+    required this.apiKey,
+    CallsConfig? config,
+  })  : _apiService = HamsaApiService(
+            apiKey: apiKey, config: config ?? CallsConfig.getCallsConfig()),
+        _liveKitUrl = (config ?? CallsConfig.getCallsConfig()).liveKitUrl;
+
+  final String _liveKitUrl;
 
   HamsaConnectionStatus get status => _status;
   HamsaAgentState get agentState => _agentState;
   List<HamsaApiLog> get apiLogs => _apiService.logs;
   bool get isPaused => _isPaused;
 
-  /// starts a new conversation with the specified agent.
-  Future<void> start(String agentId) async {
+  // ── Call lifecycle ──────────────────────────────────────────────────────────
+
+  /// Starts a new conversation with the specified agent.
+  ///
+  /// Set [interactiveAgent] to true when the agent is configured for
+  /// interactive UI tools (branding.interactiveAgent === true). The SDK will
+  /// then register all RPC handlers and fire [onToolCall] during the call.
+  Future<void> start(String agentId, {bool interactiveAgent = false}) async {
+    debugPrint('');
+    debugPrint('[HamsaSDK] ═══════════════════════════════════════════════');
+    debugPrint('[HamsaSDK]  CALL START');
+    debugPrint('[HamsaSDK]  agentId    : $agentId');
+    debugPrint('[HamsaSDK]  apiKey     : ${_maskKey(apiKey)}');
+    debugPrint('[HamsaSDK]  interactive: $interactiveAgent');
+    debugPrint('[HamsaSDK] ═══════════════════════════════════════════════');
+
     try {
       _updateStatus(HamsaConnectionStatus.connecting);
+      debugPrint('[HamsaSDK] [1/5] Fetching participant-token...');
 
-      debugPrint('[HamsaSDK] Fetching token for agent: $agentId');
-      final tokenData = await _apiService.fetchParticipantToken(agentId);
+      // participant-token: send only small flags so the resulting JWT stays
+      // under nginx's header size limit (~8 KB). Full tools/prompt go in
+      // conversation-init (HTTP body has no size limit).
+      final tokenData = await _apiService.fetchParticipantToken(
+        agentId,
+        extraParams: {
+          'voiceEnablement': 'true',
+        },
+      );
       final token = tokenData['liveKitAccessToken'] as String;
-      
-      // extract jobId from token metadata (just like JS SDK.)
-      final jobId = _extractJobIdFromToken(token) ?? tokenData['jobId'] as String? ?? agentId;
 
-      debugPrint('[HamsaSDK] Connecting to LiveKit...');
-      final room = await _voiceService.connect(token);
+      final jobId = _extractJobIdFromToken(token) ??
+          tokenData['jobId'] as String? ??
+          agentId;
+
+      debugPrint('[HamsaSDK] [3/5] Connecting to LiveKit room...');
+      final room = await _voiceService.connect(token, url: _liveKitUrl);
       _setUpListeners(room);
 
-      debugPrint('[HamsaSDK] Initializing conversation (jobId: $jobId)...');
-      await _apiService.initializeConversation(agentId, jobId);
+      debugPrint('[HamsaSDK] [4/5] Wiring RPC bridge...');
+      if (interactiveAgent && onToolCall != null) {
+        _voiceService.onToolCall = (name, args, callId) {
+          debugPrint('[HamsaSDK] 🔔 Tool call received: $name (callId: $callId)');
+          onToolCall!.call(HamsaToolCall(name: name, args: args, callId: callId));
+        };
+      }
 
+      // ── Room Radar: Log all members every 5s ──────────────────────────────
+      _radarTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+        if (room.connectionState != ConnectionState.connected) {
+          timer.cancel();
+          return;
+        }
+        final participants = room.remoteParticipants.values;
+        final info = participants.map((p) {
+          final type = p.metadata != null && p.metadata!.contains('type') ? 'METADATA_PRESENT' : 'NO_TYPE';
+          return '${p.identity} (Quality: ${p.connectionQuality}, Meta: ${p.metadata})';
+        }).join('\n      ');
+        
+        debugPrint('[HamsaSDK] 🛰  Room Radar (${participants.length} remotes):\n      $info');
+      });
+
+      // ── conversation-init ──────────────────────────────────────────────────
+      final Map<String, dynamic>? renderEngineParams = interactiveAgent
+          ? {
+              'render-engine': 'true',
+              'render-engine-tools': RenderEngineConstants.toolsJson,
+              'render-engine-system-prompt': RenderEngineConstants.systemPrompt,
+            }
+          : null;
+
+      debugPrint('[HamsaSDK] [5/5] Initializing conversation (jobId: $jobId)...');
+      await _apiService.initializeConversation(
+        agentId,
+        jobId,
+        tools: interactiveAgent
+            ? RenderEngineConstants.voiceAgentTools.map((t) => t.toJson()).toList()
+            : null,
+        extraParams: renderEngineParams,
+      );
+
+      debugPrint('[HamsaSDK] ✅ Initialization complete.');
       _updateStatus(HamsaConnectionStatus.connected);
       _isPaused = false;
+
+      debugPrint('[HamsaSDK] ✅ CALL CONNECTED — waiting for agent to speak.');
+      debugPrint('[HamsaSDK] ═══════════════════════════════════════════════');
     } catch (e) {
-      debugPrint('[HamsaSDK] Connection failed: $e');
+      debugPrint('[HamsaSDK] ❌ CALL START FAILED: $e');
+      debugPrint('[HamsaSDK] ═══════════════════════════════════════════════');
       _updateStatus(HamsaConnectionStatus.error);
       onError?.call(e.toString());
       await stop();
@@ -64,73 +154,198 @@ class HamsaVoiceAgent {
     }
   }
 
-  /// stops the current conversation and releases resources.
+  /// Submits a result for a tool call (e.g. from an interactive UI component).
+  /// [callId] is the id of the tool call being responded to.
+  /// [result] is a JSON-serializable map.
+  Future<void> submitToolResult(String callId, Map<String, dynamic> result) async {
+    _voiceService.resolveToolCall(callId, result);
+    debugPrint('[HamsaSDK] 📤 Tool result resolved: $callId');
+  }
+
+  /// Stops the current conversation and releases resources.
   Future<void> stop() async {
+    debugPrint('[HamsaSDK] ───────────────────────────────────────────────');
+    debugPrint('[HamsaSDK]  CALL STOP — disconnecting...');
     await _voiceService.disconnect();
     _listener?.dispose();
     _listener = null;
     _updateStatus(HamsaConnectionStatus.disconnected);
     _updateAgentState(HamsaAgentState.idle);
     _isPaused = false;
+    debugPrint('[HamsaSDK]  Disconnected. Resources released.');
+    debugPrint('[HamsaSDK] ───────────────────────────────────────────────');
   }
 
-  /// temporarily pauses the conversation (mutes both user and agent).
+  // ── Tool result resolution ──────────────────────────────────────────────────
+
+  /// Called by the app after the user interacts with a tool overlay.
+  /// [callId] must match the [HamsaToolCall.callId] that was delivered via [onToolCall].
+  /// [result] is the JSON-serialisable result object (e.g. {'selected_id': 'opt_1', ...}).
+  void resolveToolCall(String callId, Map<String, dynamic> result) {
+    debugPrint('[HamsaSDK] ✅ resolveToolCall: callId=$callId result=$result');
+    _voiceService.resolveToolCall(callId, result);
+  }
+
+  // ── Audio controls ──────────────────────────────────────────────────────────
+
   Future<void> pause() async {
+    debugPrint('[HamsaSDK] ⏸  pause()');
     await _voiceService.pause();
     _isPaused = true;
   }
 
-  /// resumes a paused conversation.
   Future<void> resume() async {
+    debugPrint('[HamsaSDK] ▶️  resume()');
     await _voiceService.resume();
     _isPaused = false;
   }
 
-  /// toggles the microphone mute state.
   Future<void> setMuted(bool muted) async {
+    debugPrint('[HamsaSDK] 🎙  setMuted($muted)');
     await _voiceService.setMicrophoneMuted(muted);
   }
 
-  /// toggles the device speakerphone.
   Future<void> setSpeakerphoneOn(bool enabled) async {
+    debugPrint('[HamsaSDK] 🔊  setSpeakerphoneOn($enabled)');
     await _voiceService.setSpeakerphoneOn(enabled);
   }
 
-  /// gets the current speakerphone status.
   bool get isSpeakerphoneOn => _voiceService.isSpeakerphoneOn;
 
-  /// sets the volume for the conversation (0.0 to 1.0).
   void setVolume(double volume) {
     _voiceService.setVolume(volume);
   }
 
-  /// sends a DTMF digit (0-9, *, #) during an active call.
-  /// useful for interacting with IVR systems or dial pad testing.
   void sendDTMF(String digit) {
     _voiceService.sendDTMF(digit);
   }
 
+  // ── Internal ────────────────────────────────────────────────────────────────
+
   void _updateStatus(HamsaConnectionStatus newStatus) {
+    debugPrint('[HamsaSDK] 🔄 Status: $_status → $newStatus');
     _status = newStatus;
     onConnectionStatusChanged?.call(newStatus);
   }
 
   void _updateAgentState(HamsaAgentState newState) {
+    if (_agentState != newState) {
+      debugPrint('[HamsaSDK] 🔄 AgentState: $_agentState → $newState');
+    }
     _agentState = newState;
     onAgentStateChanged?.call(newState);
   }
 
   void _setUpListeners(Room room) {
     _listener = room.createListener();
+
+    // ── Room disconnected ──────────────────────────────────────────────────
     _listener!.on<RoomDisconnectedEvent>((event) {
+      debugPrint('[HamsaSDK] 🔌 Room disconnected '
+          '(reason: ${event.reason})');
       _updateStatus(HamsaConnectionStatus.disconnected);
     });
 
+    // ── Active speakers ────────────────────────────────────────────────────
     _listener!.on<ActiveSpeakersChangedEvent>((event) {
-      if (_isPaused) return; // ignore speaker updates if paused
-      final isAgentSpeaking = event.speakers.where((p) => p != room.localParticipant).isNotEmpty;
-      _updateAgentState(isAgentSpeaking ? HamsaAgentState.speaking : HamsaAgentState.listening);
+      if (_isPaused) return;
+      final remoteSpeakers = event.speakers
+          .where((p) => p != room.localParticipant)
+          .toList();
+      final isAgentSpeaking = remoteSpeakers.isNotEmpty;
+      if (isAgentSpeaking) {
+        debugPrint('[HamsaSDK] 🗣  Agent speaking: '
+            '${remoteSpeakers.map((p) => p.identity).join(', ')}');
+      }
+      _updateAgentState(
+          isAgentSpeaking ? HamsaAgentState.speaking : HamsaAgentState.listening);
     });
+
+    // ── Track subscribed — CRITICAL: must call .enable() for audio ─────────
+    _listener!.on<TrackPublishedEvent>((event) {
+      debugPrint('[HamsaSDK] 📤 Track published by ${event.participant.identity}: '
+          '${event.publication.sid} (${event.publication.kind})');
+    });
+
+    _listener!.on<TrackSubscribedEvent>((event) {
+      debugPrint('[HamsaSDK] 📡 Track subscribed: ${event.track.sid} '
+          'from ${event.participant.identity} (${event.track.kind})');
+      
+      if (event.track is RemoteAudioTrack) {
+        final audioTrack = event.track as RemoteAudioTrack;
+        audioTrack.enable();
+        try { (audioTrack as dynamic).start(); } catch(_) {}
+        debugPrint('[HamsaSDK] 🔊 Remote audio track ENABLED & STARTED');
+      }
+    });
+
+    // ── Local Diagnostics ──────────────────────────────────────────────────
+    final local = room.localParticipant;
+    if (local != null) {
+      debugPrint('[HamsaSDK] 🎙  Local participant: ${local.identity}');
+      debugPrint('[HamsaSDK] 🎙  Local tracks published: ${local.audioTrackPublications.length} audio');
+    }
+
+    // ── Track unsubscribed ─────────────────────────────────────────────────
+    _listener!.on<TrackUnsubscribedEvent>((event) {
+      debugPrint('[HamsaSDK] 📡 Track unsubscribed: '
+          'kind=${event.track.kind} '
+          'from=${event.participant.identity}');
+    });
+
+    // ── Track published by remote ──────────────────────────────────────────
+    _listener!.on<TrackPublishedEvent>((event) {
+      debugPrint('[HamsaSDK] 📤 Remote track published: '
+          'kind=${event.publication.kind} '
+          'by=${event.participant.identity} '
+          'sid=${event.publication.sid}');
+    });
+
+    // ── Remote participant joined ───────────────────────────────────────────
+    _listener!.on<ParticipantConnectedEvent>((event) {
+      debugPrint('[HamsaSDK] 👤 Remote participant joined: '
+          '${event.participant.identity} '
+          '(sid: ${event.participant.sid})');
+    });
+
+    // ── Remote participant left ────────────────────────────────────────────
+    _listener!.on<ParticipantDisconnectedEvent>((event) {
+      debugPrint('[HamsaSDK] 👤 Remote participant left: '
+          '${event.participant.identity}');
+    });
+
+    // ── Data messages (transcription etc.) ────────────────────────────────
+    _listener!.on<DataReceivedEvent>((event) {
+      try {
+        final text = utf8.decode(event.data);
+        debugPrint('[HamsaSDK] 📨 Data received from '
+            '${event.participant?.identity}: $text');
+      } catch (_) {}
+    });
+
+    // Race-condition safety: enable any tracks already in the room.
+    debugPrint('[HamsaSDK] Scanning existing remote tracks...');
+    for (final participant in room.remoteParticipants.values) {
+      debugPrint('[HamsaSDK]   Participant: ${participant.identity} '
+          '(audio tracks: ${participant.audioTrackPublications.length})');
+      for (final pub in participant.audioTrackPublications) {
+        final track = pub.track;
+        if (track is RemoteAudioTrack) {
+          track.enable();
+          debugPrint('[HamsaSDK]   ↳ Enabled existing audio track: ${track.sid}');
+        } else {
+          debugPrint('[HamsaSDK]   ↳ Audio pub found but track not yet '
+              'subscribed (sid: ${pub.sid})');
+        }
+      }
+    }
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  String _maskKey(String key) {
+    if (key.length <= 8) return '****';
+    return '${key.substring(0, 4)}****${key.substring(key.length - 4)}';
   }
 
   String? _extractJobIdFromToken(String token) {
@@ -138,19 +353,32 @@ class HamsaVoiceAgent {
       final parts = token.split('.');
       if (parts.length != 3) return null;
       final payload = parts[1];
-      var normalized = base64Url.normalize(payload);
+      final normalized = base64Url.normalize(payload);
       final decoded = utf8.decode(base64Url.decode(normalized));
       final map = jsonDecode(decoded);
-      
+
+      debugPrint('[HamsaSDK] JWT payload keys: ${map.keys.toList()}');
+
+      // Extract room ID from video.room
+      final roomId = map['video']?['room'] as String?;
+      if (roomId != null) {
+        debugPrint('[HamsaSDK] 🏠 LiveKit Room ID: $roomId');
+      }
+
       final agents = map['roomConfig']?['agents'] as List?;
       if (agents != null && agents.isNotEmpty) {
         final metadataStr = agents[0]['metadata'] as String?;
         if (metadataStr != null) {
           final metadata = jsonDecode(metadataStr);
-          return metadata['jobId'] as String?;
+          final jobId = metadata['jobId'] as String?;
+          debugPrint('[HamsaSDK] JWT jobId extracted: $jobId');
+          return jobId;
         }
       }
-    } catch (_) {}
+      debugPrint('[HamsaSDK] JWT: no jobId in roomConfig.agents');
+    } catch (e) {
+      debugPrint('[HamsaSDK] JWT decode error: $e');
+    }
     return null;
   }
 }
