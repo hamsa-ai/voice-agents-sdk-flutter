@@ -2,7 +2,7 @@ name: hamsa_voice_flutter
 description: "Hamsa AI Voice Agent SDK for Flutter. Real-time voice interaction with AI agents."
 version: 0.1.0
 homepage: https://hamsa.ai
-repository: https://github.com/hamsa-ai/hamsa_voice_flutter
+repository: https://github.com/hamsa-ai/voice-agents-sdk-flutter
 
 environment:
   sdk: ^3.11.4
