@@ -1,0 +1,17 @@
+name: example
+description: A basic example of using the Hamsa Voice Agent SDK.
+publish_to: 'none'
+version: 1.0.0
+
+environment:
+  sdk: ^3.11.4
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  hamsa_voice_flutter:
+    path: ../
+
+flutter:
+  uses-material-design: true
