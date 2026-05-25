@@ -88,9 +88,11 @@ class HamsaVoiceService {
         _activeCallId = callId;
 
         final Map<String, dynamic> args = _safeDecodeArgs(data.payload);
-        debugPrint('[HamsaSDK] ⚡ RECEIVED RPC TOOL CALL: $toolName (callId: $callId)');
+        debugPrint(
+          '[HamsaSDK] ⚡ RECEIVED RPC TOOL CALL: $toolName (callId: $callId)',
+        );
         debugPrint('[HamsaSDK] ⚡ PAYLOAD: $args');
-        
+
         onToolCall?.call(toolName, args, callId);
 
         // Block LiveKit RPC until app resolves, with 120 s safety timeout
@@ -126,7 +128,9 @@ class HamsaVoiceService {
       return jsonEncode({'updated': true});
     });
 
-    debugPrint('[HamsaSDK] Registered ${_blockingTools.length + 3} RPC handlers on Room');
+    debugPrint(
+      '[HamsaSDK] Registered ${_blockingTools.length + 3} RPC handlers on Room',
+    );
   }
 
   // ── Tool result resolution ──────────────────────────────────────────────────
@@ -213,7 +217,8 @@ class HamsaVoiceService {
     final code = _dtmfMap[digit];
     if (code != null) {
       debugPrint(
-          '[HamsaSDK] DTMF $digit (code: $code) requested but not yet implemented in this version.');
+        '[HamsaSDK] DTMF $digit (code: $code) requested but not yet implemented in this version.',
+      );
     }
   }
 
@@ -228,8 +233,17 @@ class HamsaVoiceService {
   }
 
   static const Map<String, int> _dtmfMap = {
-    '0': 0, '1': 1, '2': 2, '3': 3, '4': 4,
-    '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
-    '*': 10, '#': 11,
+    '0': 0,
+    '1': 1,
+    '2': 2,
+    '3': 3,
+    '4': 4,
+    '5': 5,
+    '6': 6,
+    '7': 7,
+    '8': 8,
+    '9': 9,
+    '*': 10,
+    '#': 11,
   };
 }

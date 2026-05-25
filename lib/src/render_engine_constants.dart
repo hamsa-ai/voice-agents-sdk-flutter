@@ -139,9 +139,19 @@ Follow the function JSON schema you were given. The client renders **full overla
               "items": {
                 "type": "object",
                 "properties": {
-                  "id": {"type": "string", "description": "Unique identifier for this option."},
-                  "label": {"type": "string", "description": "Display text shown to the user."},
-                  "description": {"type": "string", "description": "Optional subtitle or detail for this option."},
+                  "id": {
+                    "type": "string",
+                    "description": "Unique identifier for this option.",
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "Display text shown to the user.",
+                  },
+                  "description": {
+                    "type": "string",
+                    "description":
+                        "Optional subtitle or detail for this option.",
+                  },
                 },
                 "required": ["id", "label"],
               },
@@ -152,7 +162,8 @@ Follow the function JSON schema you were given. The client renders **full overla
             },
             "initial_selected_id": {
               "type": "string",
-              "description": "Pre-select this option by id. Use when the user already indicated a choice by voice.",
+              "description":
+                  "Pre-select this option by id. Use when the user already indicated a choice by voice.",
             },
           },
           "required": ["title", "options"],
@@ -177,13 +188,24 @@ Follow the function JSON schema you were given. The client renders **full overla
               "items": {
                 "type": "object",
                 "properties": {
-                  "key": {"type": "string", "description": "Internal field identifier."},
-                  "label": {"type": "string", "description": "Human-readable field name, e.g. \"Full name\"."},
-                  "value": {"type": "string", "description": "Current value to display."},
+                  "key": {
+                    "type": "string",
+                    "description": "Internal field identifier.",
+                  },
+                  "label": {
+                    "type": "string",
+                    "description":
+                        "Human-readable field name, e.g. \"Full name\".",
+                  },
+                  "value": {
+                    "type": "string",
+                    "description": "Current value to display.",
+                  },
                   "type": {
                     "type": "string",
                     "enum": ["text", "date"],
-                    "description": "Field type — \"date\" renders an inline date picker for editing.",
+                    "description":
+                        "Field type — \"date\" renders an inline date picker for editing.",
                   },
                 },
                 "required": ["key", "label", "value"],
@@ -191,7 +213,8 @@ Follow the function JSON schema you were given. The client renders **full overla
             },
             "title": {
               "type": "string",
-              "description": "Optional heading. Defaults to \"Is this correct?\".",
+              "description":
+                  "Optional heading. Defaults to \"Is this correct?\".",
             },
           },
           "required": ["fields"],
@@ -222,7 +245,8 @@ Follow the function JSON schema you were given. The client renders **full overla
                   "type": {
                     "type": "string",
                     "enum": ["text", "date"],
-                    "description": "Optional display hint (same as confirm_data).",
+                    "description":
+                        "Optional display hint (same as confirm_data).",
                   },
                 },
                 "required": ["key", "label", "value"],
@@ -230,7 +254,8 @@ Follow the function JSON schema you were given. The client renders **full overla
             },
             "title": {
               "type": "string",
-              "description": "Optional heading. Defaults to \"Here's a summary\".",
+              "description":
+                  "Optional heading. Defaults to \"Here's a summary\".",
             },
           },
           "required": ["fields"],
@@ -249,15 +274,22 @@ Follow the function JSON schema you were given. The client renders **full overla
         "parameters": {
           "type": "object",
           "properties": {
-            "title": {"type": "string", "description": "The prompt shown above the keypad."},
-            "subtitle": {"type": "string", "description": "Optional hint text shown below the title."},
+            "title": {
+              "type": "string",
+              "description": "The prompt shown above the keypad.",
+            },
+            "subtitle": {
+              "type": "string",
+              "description": "Optional hint text shown below the title.",
+            },
             "max_length": {
               "type": "integer",
               "description": "Maximum digits allowed (1–50). Default: 12.",
             },
             "initial_value": {
               "type": "string",
-              "description": "Pre-fill the keypad with this value (digits only).",
+              "description":
+                  "Pre-fill the keypad with this value (digits only).",
             },
           },
           "required": ["title"],
@@ -276,24 +308,33 @@ Follow the function JSON schema you were given. The client renders **full overla
         "parameters": {
           "type": "object",
           "properties": {
-            "title": {"type": "string", "description": "The prompt shown above the input."},
-            "subtitle": {"type": "string", "description": "Optional hint text."},
+            "title": {
+              "type": "string",
+              "description": "The prompt shown above the input.",
+            },
+            "subtitle": {
+              "type": "string",
+              "description": "Optional hint text.",
+            },
             "placeholder": {
               "type": "string",
               "description": "Placeholder text inside the empty input.",
             },
             "max_length": {
               "type": "integer",
-              "description": "Maximum characters allowed (1–500). Default: 200.",
+              "description":
+                  "Maximum characters allowed (1–500). Default: 200.",
             },
             "initial_value": {
               "type": "string",
-              "description": "Pre-fill with this text — useful to let the user verify a voice-transcribed value.",
+              "description":
+                  "Pre-fill with this text — useful to let the user verify a voice-transcribed value.",
             },
             "input_type": {
               "type": "string",
               "enum": ["text", "email", "tel"],
-              "description": "Keyboard hint for mobile: \"text\" (default), \"email\", or \"tel\".",
+              "description":
+                  "Keyboard hint for mobile: \"text\" (default), \"email\", or \"tel\".",
             },
           },
           "required": ["title"],
@@ -312,8 +353,14 @@ Follow the function JSON schema you were given. The client renders **full overla
         "parameters": {
           "type": "object",
           "properties": {
-            "title": {"type": "string", "description": "The prompt shown above the date picker."},
-            "subtitle": {"type": "string", "description": "Optional hint text."},
+            "title": {
+              "type": "string",
+              "description": "The prompt shown above the date picker.",
+            },
+            "subtitle": {
+              "type": "string",
+              "description": "Optional hint text.",
+            },
             "initial_value": {
               "type": "string",
               "description": "Pre-fill with this date in YYYY-MM-DD format.",
@@ -343,10 +390,14 @@ Follow the function JSON schema you were given. The client renders **full overla
         "parameters": {
           "type": "object",
           "properties": {
-            "question": {"type": "string", "description": "The yes/no question to display."},
+            "question": {
+              "type": "string",
+              "description": "The yes/no question to display.",
+            },
             "yes_label": {
               "type": "string",
-              "description": "Label for the affirmative button. Default: \"Yes\".",
+              "description":
+                  "Label for the affirmative button. Default: \"Yes\".",
             },
             "no_label": {
               "type": "string",
@@ -371,10 +422,14 @@ Follow the function JSON schema you were given. The client renders **full overla
         "parameters": {
           "type": "object",
           "properties": {
-            "title": {"type": "string", "description": "Heading shown at the top of the card."},
+            "title": {
+              "type": "string",
+              "description": "Heading shown at the top of the card.",
+            },
             "content": {
               "type": "string",
-              "description": "Optional paragraph of body text shown below the title.",
+              "description":
+                  "Optional paragraph of body text shown below the title.",
             },
             "items": {
               "type": "array",
@@ -414,11 +469,18 @@ Follow the function JSON schema you were given. The client renders **full overla
               "items": {
                 "type": "object",
                 "properties": {
-                  "id": {"type": "string", "description": "Unique identifier for this path."},
-                  "label": {"type": "string", "description": "Display text shown on the button."},
+                  "id": {
+                    "type": "string",
+                    "description": "Unique identifier for this path.",
+                  },
+                  "label": {
+                    "type": "string",
+                    "description": "Display text shown on the button.",
+                  },
                   "description": {
                     "type": "string",
-                    "description": "Optional short description shown next to the label.",
+                    "description":
+                        "Optional short description shown next to the label.",
                   },
                 },
                 "required": ["id", "label"],
@@ -460,10 +522,28 @@ Follow the function JSON schema you were given. The client renders **full overla
           'Pass initial_selected_id to pre-highlight an option the user mentioned by voice. '
           'Blocks until the user selects one.',
       parameters: [
-        HamsaToolParameter(name: 'title', type: 'string', description: 'The question or prompt shown above the options.'),
-        HamsaToolParameter(name: 'options', type: 'string', description: 'JSON-encoded array of options. Each item: { id: string, label: string, description?: string }.'),
-        HamsaToolParameter(name: 'subtitle', type: 'string', description: 'Optional secondary line shown below the title.'),
-        HamsaToolParameter(name: 'initial_selected_id', type: 'string', description: 'Pre-select this option by its id. Use when the user already indicated a choice by voice and you want them to confirm.'),
+        HamsaToolParameter(
+          name: 'title',
+          type: 'string',
+          description: 'The question or prompt shown above the options.',
+        ),
+        HamsaToolParameter(
+          name: 'options',
+          type: 'string',
+          description:
+              'JSON-encoded array of options. Each item: { id: string, label: string, description?: string }.',
+        ),
+        HamsaToolParameter(
+          name: 'subtitle',
+          type: 'string',
+          description: 'Optional secondary line shown below the title.',
+        ),
+        HamsaToolParameter(
+          name: 'initial_selected_id',
+          type: 'string',
+          description:
+              'Pre-select this option by its id. Use when the user already indicated a choice by voice and you want them to confirm.',
+        ),
       ],
       required: ['title', 'options'],
     ),
@@ -472,8 +552,17 @@ Follow the function JSON schema you were given. The client renders **full overla
       description:
           'Show the user data you collected so they can verify and optionally edit it before confirming.',
       parameters: [
-        HamsaToolParameter(name: 'fields', type: 'string', description: 'JSON-encoded array of fields. Each item: { key: string, label: string, value: string, type?: "text"|"date" }.'),
-        HamsaToolParameter(name: 'title', type: 'string', description: 'Optional heading. Defaults to "Is this correct?".'),
+        HamsaToolParameter(
+          name: 'fields',
+          type: 'string',
+          description:
+              'JSON-encoded array of fields. Each item: { key: string, label: string, value: string, type?: "text"|"date" }.',
+        ),
+        HamsaToolParameter(
+          name: 'title',
+          type: 'string',
+          description: 'Optional heading. Defaults to "Is this correct?".',
+        ),
       ],
       required: ['fields'],
     ),
@@ -482,8 +571,17 @@ Follow the function JSON schema you were given. The client renders **full overla
       description:
           'Display a read-only summary of collected or processed information at the end of a flow.',
       parameters: [
-        HamsaToolParameter(name: 'fields', type: 'string', description: 'JSON-encoded array of fields. Each item: { key: string, label: string, value: string }.'),
-        HamsaToolParameter(name: 'title', type: 'string', description: 'Optional heading. Defaults to "Here\'s a summary".'),
+        HamsaToolParameter(
+          name: 'fields',
+          type: 'string',
+          description:
+              'JSON-encoded array of fields. Each item: { key: string, label: string, value: string }.',
+        ),
+        HamsaToolParameter(
+          name: 'title',
+          type: 'string',
+          description: 'Optional heading. Defaults to "Here\'s a summary".',
+        ),
       ],
       required: ['fields'],
     ),
@@ -493,10 +591,26 @@ Follow the function JSON schema you were given. The client renders **full overla
           'Prompt the user to provide a numeric value (ID, PIN, phone, reference code, etc.). '
           'Shows a numeric keypad until the user confirms.',
       parameters: [
-        HamsaToolParameter(name: 'title', type: 'string', description: 'The prompt shown above the keypad.'),
-        HamsaToolParameter(name: 'subtitle', type: 'string', description: 'Optional hint text shown below the title.'),
-        HamsaToolParameter(name: 'max_length', type: 'string', description: 'Maximum digits allowed (1–50). Default: 12.'),
-        HamsaToolParameter(name: 'initial_value', type: 'string', description: 'Pre-fill the keypad with this value (digits only).'),
+        HamsaToolParameter(
+          name: 'title',
+          type: 'string',
+          description: 'The prompt shown above the keypad.',
+        ),
+        HamsaToolParameter(
+          name: 'subtitle',
+          type: 'string',
+          description: 'Optional hint text shown below the title.',
+        ),
+        HamsaToolParameter(
+          name: 'max_length',
+          type: 'string',
+          description: 'Maximum digits allowed (1–50). Default: 12.',
+        ),
+        HamsaToolParameter(
+          name: 'initial_value',
+          type: 'string',
+          description: 'Pre-fill the keypad with this value (digits only).',
+        ),
       ],
       required: ['title'],
     ),
@@ -506,12 +620,38 @@ Follow the function JSON schema you were given. The client renders **full overla
           'Prompt the user to provide free-form text (email, name, address, reference code, etc.). '
           'Shows a text field until the user confirms.',
       parameters: [
-        HamsaToolParameter(name: 'title', type: 'string', description: 'The prompt shown above the input.'),
-        HamsaToolParameter(name: 'subtitle', type: 'string', description: 'Optional hint text.'),
-        HamsaToolParameter(name: 'placeholder', type: 'string', description: 'Placeholder text inside the empty input.'),
-        HamsaToolParameter(name: 'max_length', type: 'string', description: 'Maximum characters allowed (1–500). Default: 200.'),
-        HamsaToolParameter(name: 'initial_value', type: 'string', description: 'Pre-fill with this text — useful to let the user verify a voice-transcribed value.'),
-        HamsaToolParameter(name: 'input_type', type: 'string', description: 'Keyboard hint for mobile: "text" (default), "email", or "tel".'),
+        HamsaToolParameter(
+          name: 'title',
+          type: 'string',
+          description: 'The prompt shown above the input.',
+        ),
+        HamsaToolParameter(
+          name: 'subtitle',
+          type: 'string',
+          description: 'Optional hint text.',
+        ),
+        HamsaToolParameter(
+          name: 'placeholder',
+          type: 'string',
+          description: 'Placeholder text inside the empty input.',
+        ),
+        HamsaToolParameter(
+          name: 'max_length',
+          type: 'string',
+          description: 'Maximum characters allowed (1–500). Default: 200.',
+        ),
+        HamsaToolParameter(
+          name: 'initial_value',
+          type: 'string',
+          description:
+              'Pre-fill with this text — useful to let the user verify a voice-transcribed value.',
+        ),
+        HamsaToolParameter(
+          name: 'input_type',
+          type: 'string',
+          description:
+              'Keyboard hint for mobile: "text" (default), "email", or "tel".',
+        ),
       ],
       required: ['title'],
     ),
@@ -521,11 +661,31 @@ Follow the function JSON schema you were given. The client renders **full overla
           'Prompt the user to provide a date (birth date, appointment, start date, etc.). '
           'Shows a date picker until the user confirms. The tool result is YYYY-MM-DD.',
       parameters: [
-        HamsaToolParameter(name: 'title', type: 'string', description: 'The prompt shown above the date picker.'),
-        HamsaToolParameter(name: 'subtitle', type: 'string', description: 'Optional hint text.'),
-        HamsaToolParameter(name: 'initial_value', type: 'string', description: 'Pre-fill with this date in YYYY-MM-DD format.'),
-        HamsaToolParameter(name: 'min_date', type: 'string', description: 'Earliest selectable date in YYYY-MM-DD format.'),
-        HamsaToolParameter(name: 'max_date', type: 'string', description: 'Latest selectable date in YYYY-MM-DD format.'),
+        HamsaToolParameter(
+          name: 'title',
+          type: 'string',
+          description: 'The prompt shown above the date picker.',
+        ),
+        HamsaToolParameter(
+          name: 'subtitle',
+          type: 'string',
+          description: 'Optional hint text.',
+        ),
+        HamsaToolParameter(
+          name: 'initial_value',
+          type: 'string',
+          description: 'Pre-fill with this date in YYYY-MM-DD format.',
+        ),
+        HamsaToolParameter(
+          name: 'min_date',
+          type: 'string',
+          description: 'Earliest selectable date in YYYY-MM-DD format.',
+        ),
+        HamsaToolParameter(
+          name: 'max_date',
+          type: 'string',
+          description: 'Latest selectable date in YYYY-MM-DD format.',
+        ),
       ],
       required: ['title'],
     ),
@@ -535,9 +695,21 @@ Follow the function JSON schema you were given. The client renders **full overla
           'Display two tappable buttons for a binary yes/no question. '
           'The tool result is "yes" or "no".',
       parameters: [
-        HamsaToolParameter(name: 'question', type: 'string', description: 'The yes/no question to display.'),
-        HamsaToolParameter(name: 'yes_label', type: 'string', description: 'Label for the affirmative button. Default: "Yes".'),
-        HamsaToolParameter(name: 'no_label', type: 'string', description: 'Label for the negative button. Default: "No".'),
+        HamsaToolParameter(
+          name: 'question',
+          type: 'string',
+          description: 'The yes/no question to display.',
+        ),
+        HamsaToolParameter(
+          name: 'yes_label',
+          type: 'string',
+          description: 'Label for the affirmative button. Default: "Yes".',
+        ),
+        HamsaToolParameter(
+          name: 'no_label',
+          type: 'string',
+          description: 'Label for the negative button. Default: "No".',
+        ),
       ],
       required: ['question'],
     ),
@@ -548,9 +720,22 @@ Follow the function JSON schema you were given. The client renders **full overla
           'Use when the agent states a reference number, fare, confirmation code, or any content worth showing on screen. '
           'Resolves immediately — the overlay persists until another tool or dismiss_tool_ui is called.',
       parameters: [
-        HamsaToolParameter(name: 'title', type: 'string', description: 'Heading shown at the top of the card.'),
-        HamsaToolParameter(name: 'content', type: 'string', description: 'Optional paragraph of body text shown below the title.'),
-        HamsaToolParameter(name: 'items', type: 'string', description: 'Optional JSON-encoded array of key-value rows (max 8). Each item: { label: string, value: string }.'),
+        HamsaToolParameter(
+          name: 'title',
+          type: 'string',
+          description: 'Heading shown at the top of the card.',
+        ),
+        HamsaToolParameter(
+          name: 'content',
+          type: 'string',
+          description: 'Optional paragraph of body text shown below the title.',
+        ),
+        HamsaToolParameter(
+          name: 'items',
+          type: 'string',
+          description:
+              'Optional JSON-encoded array of key-value rows (max 8). Each item: { label: string, value: string }.',
+        ),
       ],
       required: ['title'],
     ),
@@ -563,7 +748,12 @@ Follow the function JSON schema you were given. The client renders **full overla
           'until the user taps one, a new show_paths call arrives, or the call ends. '
           'Pass at most 8 paths. Blocks until the user selects a path.',
       parameters: [
-        HamsaToolParameter(name: 'paths', type: 'string', description: 'JSON-encoded array of paths. Each item: { id: string, label: string, description?: string }.'),
+        HamsaToolParameter(
+          name: 'paths',
+          type: 'string',
+          description:
+              'JSON-encoded array of paths. Each item: { id: string, label: string, description?: string }.',
+        ),
       ],
       required: ['paths'],
     ),
@@ -576,10 +766,20 @@ Follow the function JSON schema you were given. The client renders **full overla
     ),
     const HamsaTool(
       functionName: 'prefill_active_tool',
-      description: 'Update the pre-filled value in the currently visible tool overlay without dismissing it.',
+      description:
+          'Update the pre-filled value in the currently visible tool overlay without dismissing it.',
       parameters: [
-        HamsaToolParameter(name: 'value', type: 'string', description: 'New pre-filled value for the active input tool.'),
-        HamsaToolParameter(name: 'selected_id', type: 'string', description: 'New pre-selected option ID for the active show_options overlay.'),
+        HamsaToolParameter(
+          name: 'value',
+          type: 'string',
+          description: 'New pre-filled value for the active input tool.',
+        ),
+        HamsaToolParameter(
+          name: 'selected_id',
+          type: 'string',
+          description:
+              'New pre-selected option ID for the active show_options overlay.',
+        ),
       ],
     ),
   ];

@@ -43,12 +43,12 @@ class HamsaVoiceAgent {
 
   // ── Constructor / getters ───────────────────────────────────────────────────
 
-  HamsaVoiceAgent({
-    required this.apiKey,
-    CallsConfig? config,
-  })  : _apiService = HamsaApiService(
-            apiKey: apiKey, config: config ?? CallsConfig.getCallsConfig()),
-        _liveKitUrl = (config ?? CallsConfig.getCallsConfig()).liveKitUrl;
+  HamsaVoiceAgent({required this.apiKey, CallsConfig? config})
+    : _apiService = HamsaApiService(
+        apiKey: apiKey,
+        config: config ?? CallsConfig.getCallsConfig(),
+      ),
+      _liveKitUrl = (config ?? CallsConfig.getCallsConfig()).liveKitUrl;
 
   final String _liveKitUrl;
 
@@ -82,13 +82,12 @@ class HamsaVoiceAgent {
       // conversation-init (HTTP body has no size limit).
       final tokenData = await _apiService.fetchParticipantToken(
         agentId,
-        extraParams: {
-          'voiceEnablement': 'true',
-        },
+        extraParams: {'voiceEnablement': 'true'},
       );
       final token = tokenData['liveKitAccessToken'] as String;
 
-      final jobId = _extractJobIdFromToken(token) ??
+      final jobId =
+          _extractJobIdFromToken(token) ??
           tokenData['jobId'] as String? ??
           agentId;
 
@@ -97,8 +96,12 @@ class HamsaVoiceAgent {
       debugPrint('[HamsaSDK] [3/5] Wiring RPC bridge...');
       if (interactiveAgent && onToolCall != null) {
         _voiceService.onToolCall = (name, args, callId) {
-          debugPrint('[HamsaSDK] 🔔 Tool call received: $name (callId: $callId)');
-          onToolCall!.call(HamsaToolCall(name: name, args: args, callId: callId));
+          debugPrint(
+            '[HamsaSDK] 🔔 Tool call received: $name (callId: $callId)',
+          );
+          onToolCall!.call(
+            HamsaToolCall(name: name, args: args, callId: callId),
+          );
         };
       }
 
@@ -113,12 +116,15 @@ class HamsaVoiceAgent {
           return;
         }
         final participants = room.remoteParticipants.values;
-        final info = participants.map((p) {
-          final type = p.metadata != null && p.metadata!.contains('type') ? 'METADATA_PRESENT' : 'NO_TYPE';
-          return '${p.identity} (Quality: ${p.connectionQuality}, Meta: ${p.metadata})';
-        }).join('\n      ');
-        
-        debugPrint('[HamsaSDK] 🛰  Room Radar (${participants.length} remotes):\n      $info');
+        final info = participants
+            .map((p) {
+              return '${p.identity} (Quality: ${p.connectionQuality}, Meta: ${p.metadata})';
+            })
+            .join('\n      ');
+
+        debugPrint(
+          '[HamsaSDK] 🛰  Room Radar (${participants.length} remotes):\n      $info',
+        );
       });
 
       // ── conversation-init ──────────────────────────────────────────────────
@@ -134,14 +140,19 @@ class HamsaVoiceAgent {
             }
           : null;
 
-      debugPrint('[HamsaSDK] [5/5] Initializing conversation (jobId: $jobId)...');
+      debugPrint(
+        '[HamsaSDK] [5/5] Initializing conversation (jobId: $jobId)...',
+      );
       await _apiService.initializeConversation(
         agentId,
         jobId,
         tools: interactiveAgent
-            ? RenderEngineConstants.voiceAgentTools.map((t) => t.toLLMJson()).toList()
+            ? RenderEngineConstants.voiceAgentTools
+                  .map((t) => t.toLLMJson())
+                  .toList()
             : null,
         extraParams: renderEngineParams,
+        channelType: 'Web',
       );
 
       debugPrint('[HamsaSDK] ✅ Initialization complete.');
@@ -163,7 +174,10 @@ class HamsaVoiceAgent {
   /// Submits a result for a tool call (e.g. from an interactive UI component).
   /// [callId] is the id of the tool call being responded to.
   /// [result] is a JSON-serializable map.
-  Future<void> submitToolResult(String callId, Map<String, dynamic> result) async {
+  Future<void> submitToolResult(
+    String callId,
+    Map<String, dynamic> result,
+  ) async {
     _voiceService.resolveToolCall(callId, result);
     debugPrint('[HamsaSDK] 📤 Tool result resolved: $callId');
   }
@@ -173,6 +187,7 @@ class HamsaVoiceAgent {
     debugPrint('[HamsaSDK] ───────────────────────────────────────────────');
     debugPrint('[HamsaSDK]  CALL STOP — disconnecting...');
     await _voiceService.disconnect();
+    _radarTimer?.cancel();
     _listener?.dispose();
     _listener = null;
     _updateStatus(HamsaConnectionStatus.disconnected);
@@ -247,8 +262,10 @@ class HamsaVoiceAgent {
 
     // ── Room disconnected ──────────────────────────────────────────────────
     _listener!.on<RoomDisconnectedEvent>((event) {
-      debugPrint('[HamsaSDK] 🔌 Room disconnected '
-          '(reason: ${event.reason})');
+      debugPrint(
+        '[HamsaSDK] 🔌 Room disconnected '
+        '(reason: ${event.reason})',
+      );
       _updateStatus(HamsaConnectionStatus.disconnected);
     });
 
@@ -260,27 +277,36 @@ class HamsaVoiceAgent {
           .toList();
       final isAgentSpeaking = remoteSpeakers.isNotEmpty;
       if (isAgentSpeaking) {
-        debugPrint('[HamsaSDK] 🗣  Agent speaking: '
-            '${remoteSpeakers.map((p) => p.identity).join(', ')}');
+        debugPrint(
+          '[HamsaSDK] 🗣  Agent speaking: '
+          '${remoteSpeakers.map((p) => p.identity).join(', ')}',
+        );
       }
       _updateAgentState(
-          isAgentSpeaking ? HamsaAgentState.speaking : HamsaAgentState.listening);
+        isAgentSpeaking ? HamsaAgentState.speaking : HamsaAgentState.listening,
+      );
     });
 
     // ── Track subscribed — CRITICAL: must call .enable() for audio ─────────
     _listener!.on<TrackPublishedEvent>((event) {
-      debugPrint('[HamsaSDK] 📤 Track published by ${event.participant.identity}: '
-          '${event.publication.sid} (${event.publication.kind})');
+      debugPrint(
+        '[HamsaSDK] 📤 Track published by ${event.participant.identity}: '
+        '${event.publication.sid} (${event.publication.kind})',
+      );
     });
 
     _listener!.on<TrackSubscribedEvent>((event) {
-      debugPrint('[HamsaSDK] 📡 Track subscribed: ${event.track.sid} '
-          'from ${event.participant.identity} (${event.track.kind})');
-      
+      debugPrint(
+        '[HamsaSDK] 📡 Track subscribed: ${event.track.sid} '
+        'from ${event.participant.identity} (${event.track.kind})',
+      );
+
       if (event.track is RemoteAudioTrack) {
         final audioTrack = event.track as RemoteAudioTrack;
         audioTrack.enable();
-        try { (audioTrack as dynamic).start(); } catch(_) {}
+        try {
+          (audioTrack as dynamic).start();
+        } catch (_) {}
         debugPrint('[HamsaSDK] 🔊 Remote audio track ENABLED & STARTED');
       }
     });
@@ -289,51 +315,67 @@ class HamsaVoiceAgent {
     final local = room.localParticipant;
     if (local != null) {
       debugPrint('[HamsaSDK] 🎙  Local participant: ${local.identity}');
-      debugPrint('[HamsaSDK] 🎙  Local tracks published: ${local.audioTrackPublications.length} audio');
+      debugPrint(
+        '[HamsaSDK] 🎙  Local tracks published: ${local.audioTrackPublications.length} audio',
+      );
     }
 
     // ── Track unsubscribed ─────────────────────────────────────────────────
     _listener!.on<TrackUnsubscribedEvent>((event) {
-      debugPrint('[HamsaSDK] 📡 Track unsubscribed: '
-          'kind=${event.track.kind} '
-          'from=${event.participant.identity}');
+      debugPrint(
+        '[HamsaSDK] 📡 Track unsubscribed: '
+        'kind=${event.track.kind} '
+        'from=${event.participant.identity}',
+      );
     });
 
     // ── Remote participant joined ───────────────────────────────────────────
     _listener!.on<ParticipantConnectedEvent>((event) {
-      debugPrint('[HamsaSDK] 👤 Remote participant joined: '
-          '${event.participant.identity} '
-          '(sid: ${event.participant.sid})');
+      debugPrint(
+        '[HamsaSDK] 👤 Remote participant joined: '
+        '${event.participant.identity} '
+        '(sid: ${event.participant.sid})',
+      );
     });
 
     // ── Remote participant left ────────────────────────────────────────────
     _listener!.on<ParticipantDisconnectedEvent>((event) {
-      debugPrint('[HamsaSDK] 👤 Remote participant left: '
-          '${event.participant.identity}');
+      debugPrint(
+        '[HamsaSDK] 👤 Remote participant left: '
+        '${event.participant.identity}',
+      );
     });
 
     // ── Data messages (transcription etc.) ────────────────────────────────
     _listener!.on<DataReceivedEvent>((event) {
       try {
         final text = utf8.decode(event.data);
-        debugPrint('[HamsaSDK] 📨 Data received from '
-            '${event.participant?.identity}: $text');
+        debugPrint(
+          '[HamsaSDK] 📨 Data received from '
+          '${event.participant?.identity}: $text',
+        );
       } catch (_) {}
     });
 
     // Race-condition safety: enable any tracks already in the room.
     debugPrint('[HamsaSDK] Scanning existing remote tracks...');
     for (final participant in room.remoteParticipants.values) {
-      debugPrint('[HamsaSDK]   Participant: ${participant.identity} '
-          '(audio tracks: ${participant.audioTrackPublications.length})');
+      debugPrint(
+        '[HamsaSDK]   Participant: ${participant.identity} '
+        '(audio tracks: ${participant.audioTrackPublications.length})',
+      );
       for (final pub in participant.audioTrackPublications) {
         final track = pub.track;
         if (track is RemoteAudioTrack) {
           track.enable();
-          debugPrint('[HamsaSDK]   ↳ Enabled existing audio track: ${track.sid}');
+          debugPrint(
+            '[HamsaSDK]   ↳ Enabled existing audio track: ${track.sid}',
+          );
         } else {
-          debugPrint('[HamsaSDK]   ↳ Audio pub found but track not yet '
-              'subscribed (sid: ${pub.sid})');
+          debugPrint(
+            '[HamsaSDK]   ↳ Audio pub found but track not yet '
+            'subscribed (sid: ${pub.sid})',
+          );
         }
       }
     }

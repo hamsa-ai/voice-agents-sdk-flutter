@@ -1,19 +1,8 @@
 /// connection states for the Hamsa voice agent
-enum HamsaConnectionStatus {
-  disconnected,
-  connecting,
-  connected,
-  error,
-}
+enum HamsaConnectionStatus { disconnected, connecting, connected, error }
 
 /// agent interaction states
-enum HamsaAgentState {
-  idle,
-  initializing,
-  listening,
-  thinking,
-  speaking,
-}
+enum HamsaAgentState { idle, initializing, listening, thinking, speaking }
 
 /// event data for call started
 class HamsaCallStartedData {
@@ -45,8 +34,10 @@ class HamsaApiLog {
     this.duration,
   });
 
-  bool get isSuccess => statusCode != null && statusCode! >= 200 && statusCode! < 300;
-  bool get isError => error != null || (statusCode != null && statusCode! >= 400);
+  bool get isSuccess =>
+      statusCode != null && statusCode! >= 200 && statusCode! < 300;
+  bool get isError =>
+      error != null || (statusCode != null && statusCode! >= 400);
 }
 
 /// Definition of a parameter for a client-side tool.
@@ -68,10 +59,10 @@ class HamsaToolParameter {
   });
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'type': type,
-        'description': description,
-      };
+    'name': name,
+    'type': type,
+    'description': description,
+  };
 }
 
 /// Definition of a client-side tool that can be called by the voice agent.
@@ -99,34 +90,31 @@ class HamsaTool {
   });
 
   Map<String, dynamic> toJson() => {
-        'function_name': functionName,
-        'description': description,
-        if (parameters != null)
-          'parameters': parameters!.map((p) => p.toJson()).toList(),
-        if (required != null) 'required': required,
-      };
+    'function_name': functionName,
+    'description': description,
+    if (parameters != null)
+      'parameters': parameters!.map((p) => p.toJson()).toList(),
+    if (required != null) 'required': required,
+  };
 
   /// Converts to OpenAI function-calling format for conversation-init.
   /// Matches the web SDK's `#convertToolsToLLMTools()` exactly.
   Map<String, dynamic> toLLMJson() => {
-        'type': 'function',
-        'function': {
-          'name': functionName,
-          'description': description,
-          'parameters': {
-            'type': 'object',
-            'properties': {
-              if (parameters != null)
-                for (final p in parameters!)
-                  p.name: {
-                    'type': p.type,
-                    'description': p.description,
-                  },
-            },
-            'required': required ?? [],
-          },
+    'type': 'function',
+    'function': {
+      'name': functionName,
+      'description': description,
+      'parameters': {
+        'type': 'object',
+        'properties': {
+          if (parameters != null)
+            for (final p in parameters!)
+              p.name: {'type': p.type, 'description': p.description},
         },
-      };
+        'required': required ?? [],
+      },
+    },
+  };
 }
 
 /// A tool call delivered by the Render Engine during an interactive call.

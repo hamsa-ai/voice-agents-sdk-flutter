@@ -13,20 +13,19 @@ class HamsaApiService {
 
   HamsaApiService({required this.apiKey, this.config = CallsConfig.dev});
 
-
   Map<String, String> get _headers => {
-        'Authorization': 'Token $apiKey',
-        'Content-Type': 'application/json',
-        'Accept': '*/*',
-        'X-Client-Platform': 'mobile',
-      };
+    'Authorization': 'Token $apiKey',
+    'Content-Type': 'application/json',
+    'Accept': '*/*',
+    'X-Client-Platform': 'mobile',
+  };
 
   Map<String, String> get _safeHeaders => {
-        'Authorization': 'Token ${_maskApiKey(apiKey)}',
-        'Content-Type': 'application/json',
-        'Accept': '*/*',
-        'X-Client-Platform': 'mobile',
-      };
+    'Authorization': 'Token ${_maskApiKey(apiKey)}',
+    'Content-Type': 'application/json',
+    'Accept': '*/*',
+    'X-Client-Platform': 'mobile',
+  };
 
   String _maskApiKey(String key) {
     if (key.length <= 8) return '****';
@@ -48,7 +47,7 @@ class HamsaApiService {
 
     debugPrint('[HamsaSDK] ┌── POST participant-token ──────────────────────');
     debugPrint('[HamsaSDK] │  URL    : $url');
-    debugPrint('[HamsaSDK] │  Headers: ${_safeHeaders}');
+    debugPrint('[HamsaSDK] │  Headers: $_safeHeaders');
     debugPrint('[HamsaSDK] │  Body   : $body');
     debugPrint('[HamsaSDK] └────────────────────────────────────────────────');
 
@@ -62,10 +61,14 @@ class HamsaApiService {
       );
       final duration = DateTime.now().difference(startTime);
 
-      debugPrint('[HamsaSDK] ┌── participant-token response (${duration.inMilliseconds}ms) ─');
+      debugPrint(
+        '[HamsaSDK] ┌── participant-token response (${duration.inMilliseconds}ms) ─',
+      );
       debugPrint('[HamsaSDK] │  Status: ${response.statusCode}');
       debugPrint('[HamsaSDK] │  Body  : ${response.body}');
-      debugPrint('[HamsaSDK] └────────────────────────────────────────────────');
+      debugPrint(
+        '[HamsaSDK] └────────────────────────────────────────────────',
+      );
 
       _updateLastLog(
         statusCode: response.statusCode,
@@ -78,9 +81,11 @@ class HamsaApiService {
         if (json['success'] == true && json['data'] != null) {
           final data = json['data'] as Map<String, dynamic>;
           final token = data['liveKitAccessToken'] as String? ?? '';
-          debugPrint('[HamsaSDK] ✅ participant-token OK '
-              '(jobId: ${data['jobId']}, '
-              'token: ${token.length > 20 ? '${token.substring(0, 20)}...' : token})');
+          debugPrint(
+            '[HamsaSDK] ✅ participant-token OK '
+            '(jobId: ${data['jobId']}, '
+            'token: ${token.length > 20 ? '${token.substring(0, 20)}...' : token})',
+          );
           return data;
         }
         throw Exception('Invalid response structure: ${response.body}');
@@ -130,6 +135,7 @@ class HamsaApiService {
       'voiceAgentId': agentId,
       'params': extraParams ?? {},
       'jobId': jobId,
+      // ignore: use_null_aware_elements
       if (channelType != null) 'channelType': channelType,
     });
 
@@ -139,6 +145,7 @@ class HamsaApiService {
       'voiceAgentId': agentId,
       'params': safeParams ?? {},
       'jobId': jobId,
+      // ignore: use_null_aware_elements
       if (channelType != null) 'channelType': channelType,
     });
 
@@ -146,7 +153,7 @@ class HamsaApiService {
 
     debugPrint('[HamsaSDK] ┌── POST conversation-init ──────────────────────');
     debugPrint('[HamsaSDK] │  URL    : $url');
-    debugPrint('[HamsaSDK] │  Headers: ${_safeHeaders}');
+    debugPrint('[HamsaSDK] │  Headers: $_safeHeaders');
     debugPrint('[HamsaSDK] │  Body   : $logBody');
     debugPrint('[HamsaSDK] └────────────────────────────────────────────────');
 
@@ -160,10 +167,14 @@ class HamsaApiService {
       );
       final duration = DateTime.now().difference(startTime);
 
-      debugPrint('[HamsaSDK] ┌── conversation-init response (${duration.inMilliseconds}ms) ─');
+      debugPrint(
+        '[HamsaSDK] ┌── conversation-init response (${duration.inMilliseconds}ms) ─',
+      );
       debugPrint('[HamsaSDK] │  Status: ${response.statusCode}');
       debugPrint('[HamsaSDK] │  Body  : ${response.body}');
-      debugPrint('[HamsaSDK] └────────────────────────────────────────────────');
+      debugPrint(
+        '[HamsaSDK] └────────────────────────────────────────────────',
+      );
 
       _updateLastLog(
         statusCode: response.statusCode,
@@ -199,13 +210,15 @@ class HamsaApiService {
     required String url,
     String? body,
   }) {
-    logs.add(HamsaApiLog(
-      timestamp: DateTime.now(),
-      method: method,
-      url: url,
-      requestHeaders: _safeHeaders,
-      requestBody: body,
-    ));
+    logs.add(
+      HamsaApiLog(
+        timestamp: DateTime.now(),
+        method: method,
+        url: url,
+        requestHeaders: _safeHeaders,
+        requestBody: body,
+      ),
+    );
   }
 
   void _updateLastLog({
