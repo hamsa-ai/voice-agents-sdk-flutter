@@ -15,8 +15,8 @@ class HamsaVoiceService {
   /// Signature: (toolName, args, callId)
   void Function(String, Map<String, dynamic>, String)? onToolCall;
 
-  Completer<String>? _activeCompleter;
-  String? _activeCallId;
+  final Map<String, Completer<String>> _pendingCompleters = {};
+  DateTime? _lastToolTime;
 
   static const List<String> _blockingTools = [
     'show_options',
@@ -58,7 +58,7 @@ class HamsaVoiceService {
   }
 
   Future<void> disconnect() async {
-    _dismissActive(); // resolve any pending tool call before teardown
+    _dismissAll(); // resolve any pending tool call before teardown
     // Unregister all RPC handlers before disconnecting
     if (_room != null) {
       for (final toolName in _blockingTools) {
@@ -79,13 +79,18 @@ class HamsaVoiceService {
     // ── Blocking tools ──────────────────────────────────────────────────────
     for (final toolName in _blockingTools) {
       room.registerRpcMethod(toolName, (data) async {
-        // Preempt any previous pending call
-        _dismissActive();
+        final now = DateTime.now();
+        if (_lastToolTime != null && now.difference(_lastToolTime!).inMilliseconds > 2500) {
+          // More than 2.5s since the last tool. This is a new agent turn.
+          // Dismiss old pending tools so they don't pile up.
+          _dismissAll();
+          onToolCall?.call('clear_queue', {}, data.requestId);
+        }
+        _lastToolTime = now;
 
         final callId = data.requestId;
         final completer = Completer<String>();
-        _activeCompleter = completer;
-        _activeCallId = callId;
+        _pendingCompleters[callId] = completer;
 
         final Map<String, dynamic> args = _safeDecodeArgs(data.payload);
         debugPrint(
@@ -99,8 +104,7 @@ class HamsaVoiceService {
         return completer.future.timeout(
           const Duration(seconds: 120),
           onTimeout: () {
-            _activeCompleter = null;
-            _activeCallId = null;
+            _pendingCompleters.remove(callId);
             return jsonEncode({'timed_out': true});
           },
         );
@@ -116,7 +120,7 @@ class HamsaVoiceService {
 
     // ── dismiss_tool_ui ────────────────────────────────────────────────────
     room.registerRpcMethod('dismiss_tool_ui', (data) async {
-      _dismissActive(); // complete pending with dismissed
+      _dismissAll(); // complete pending with dismissed
       onToolCall?.call('dismiss_tool_ui', {}, data.requestId);
       return jsonEncode({'dismissed': true});
     });
@@ -137,24 +141,43 @@ class HamsaVoiceService {
 
   /// Called by the app after the user submits a tool response.
   void resolveToolCall(String callId, Map<String, dynamic> result) {
-    if (_activeCallId == callId &&
-        _activeCompleter != null &&
-        !_activeCompleter!.isCompleted) {
-      _activeCompleter!.complete(jsonEncode(result));
-      _activeCompleter = null;
-      _activeCallId = null;
+    final completer = _pendingCompleters.remove(callId);
+    if (completer != null && !completer.isCompleted) {
+      completer.complete(jsonEncode(result));
     } else {
       debugPrint('[HamsaSDK] resolveToolCall: no pending call for id=$callId');
     }
   }
 
-  /// Dismiss the active blocking tool call with {dismissed: true}.
-  void _dismissActive() {
-    if (_activeCompleter != null && !_activeCompleter!.isCompleted) {
-      _activeCompleter!.complete(jsonEncode({'dismissed': true}));
+  /// Dismiss all active blocking tool calls with {dismissed: true}.
+  void _dismissAll() {
+    for (var completer in _pendingCompleters.values) {
+      if (!completer.isCompleted) {
+        completer.complete(jsonEncode({'dismissed': true}));
+      }
     }
-    _activeCompleter = null;
-    _activeCallId = null;
+    _pendingCompleters.clear();
+  }
+
+  // ── Data Channel ────────────────────────────────────────────────────────────
+
+  Future<void> sendInput(String text) async {
+    if (_room == null || _room!.localParticipant == null) return;
+    try {
+      final payload = jsonEncode({
+        'type': 'user_input',
+        'text': text,
+      });
+      final data = utf8.encode(payload);
+      
+      await _room!.localParticipant!.publishData(
+        data,
+        reliable: true,
+      );
+      debugPrint('[HamsaSDK] 📨 Sent user_input: $text');
+    } catch (e) {
+      debugPrint('[HamsaSDK] ❌ Failed to send user_input: $e');
+    }
   }
 
   // ── Audio controls ──────────────────────────────────────────────────────────

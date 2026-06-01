@@ -5,7 +5,6 @@ import 'package:livekit_client/livekit_client.dart';
 import 'src/models.dart';
 import 'src/api_service.dart';
 import 'src/voice_service.dart';
-import 'src/render_engine_constants.dart';
 import 'src/calls_config.dart';
 
 export 'src/models.dart';
@@ -29,6 +28,7 @@ class HamsaVoiceAgent {
   void Function(HamsaConnectionStatus status)? onConnectionStatusChanged;
   void Function(HamsaAgentState state)? onAgentStateChanged;
   void Function(String text)? onTranscriptionReceived;
+  void Function(String context)? onAgentContextReceived;
   void Function(String text)? onAnswerReceived;
   void Function(String errorMessage)? onError;
 
@@ -64,7 +64,13 @@ class HamsaVoiceAgent {
   /// Set [interactiveAgent] to true when the agent is configured for
   /// interactive UI tools (branding.interactiveAgent === true). The SDK will
   /// then register all RPC handlers and fire [onToolCall] during the call.
-  Future<void> start(String agentId, {bool interactiveAgent = false}) async {
+  Future<void> start(
+    String agentId, {
+    Map<String, dynamic>? customParams,
+    List<HamsaTool>? customTools,
+    @Deprecated('Use customParams and customTools instead')
+    bool interactiveAgent = false,
+  }) async {
     debugPrint('');
     debugPrint('[HamsaSDK] ═══════════════════════════════════════════════');
     debugPrint('[HamsaSDK]  CALL START');
@@ -77,12 +83,15 @@ class HamsaVoiceAgent {
       _updateStatus(HamsaConnectionStatus.connecting);
       debugPrint('[HamsaSDK] [1/5] Fetching participant-token...');
 
-      // participant-token: send only small flags so the resulting JWT stays
-      // under nginx's header size limit (~8 KB). Full tools/prompt go in
-      // conversation-init (HTTP body has no size limit).
+      // participant-token: We MUST send the tools and flags here, just like
+      // the web SDK does, because the backend relies on this to spawn the
+      // render engine into the room.
       final tokenData = await _apiService.fetchParticipantToken(
         agentId,
-        extraParams: {'voiceEnablement': 'true'},
+        extraParams: {
+          'voiceEnablement': 'true',
+          if (customParams != null) ...customParams,
+        },
       );
       final token = tokenData['liveKitAccessToken'] as String;
 
@@ -94,7 +103,7 @@ class HamsaVoiceAgent {
       // Wire the RPC bridge BEFORE connecting so _registerRpcHandlers()
       // sees a non-null onToolCall when connect() is called.
       debugPrint('[HamsaSDK] [3/5] Wiring RPC bridge...');
-      if (interactiveAgent && onToolCall != null) {
+      if (onToolCall != null) {
         _voiceService.onToolCall = (name, args, callId) {
           debugPrint(
             '[HamsaSDK] 🔔 Tool call received: $name (callId: $callId)',
@@ -128,17 +137,6 @@ class HamsaVoiceAgent {
       });
 
       // ── conversation-init ──────────────────────────────────────────────────
-      final Map<String, dynamic>? renderEngineParams = interactiveAgent
-          ? {
-              // render-agent-* is the current namespace; render-engine-* kept for backward compat.
-              'render-agent': 'true',
-              'render-agent-tools': RenderEngineConstants.toolsJson,
-              'render-agent-system-prompt': RenderEngineConstants.systemPrompt,
-              'render-engine': 'true',
-              'render-engine-tools': RenderEngineConstants.toolsJson,
-              'render-engine-system-prompt': RenderEngineConstants.systemPrompt,
-            }
-          : null;
 
       debugPrint(
         '[HamsaSDK] [5/5] Initializing conversation (jobId: $jobId)...',
@@ -146,12 +144,8 @@ class HamsaVoiceAgent {
       await _apiService.initializeConversation(
         agentId,
         jobId,
-        tools: interactiveAgent
-            ? RenderEngineConstants.voiceAgentTools
-                  .map((t) => t.toLLMJson())
-                  .toList()
-            : null,
-        extraParams: renderEngineParams,
+        tools: customTools?.map((t) => t.toLLMJson()).toList(),
+        extraParams: customParams,
         channelType: 'Web',
       );
 
@@ -205,6 +199,11 @@ class HamsaVoiceAgent {
   void resolveToolCall(String callId, Map<String, dynamic> result) {
     debugPrint('[HamsaSDK] ✅ resolveToolCall: callId=$callId result=$result');
     _voiceService.resolveToolCall(callId, result);
+  }
+
+  /// Sends text input from the user back to the voice agent (Voice Mirror)
+  Future<void> sendInput(String text) async {
+    await _voiceService.sendInput(text);
   }
 
   // ── Audio controls ──────────────────────────────────────────────────────────
@@ -354,6 +353,13 @@ class HamsaVoiceAgent {
           '[HamsaSDK] 📨 Data received from '
           '${event.participant?.identity}: $text',
         );
+
+        final json = jsonDecode(text);
+        if (json is Map<String, dynamic>) {
+          if (json['type'] == 'render_ctx' && json['content'] != null) {
+            onAgentContextReceived?.call(json['content'] as String);
+          }
+        }
       } catch (_) {}
     });
 
