@@ -149,14 +149,14 @@ class HamsaVoiceAgent {
         channelType: 'Web',
       );
 
-      debugPrint('[HamsaSDK] ✅ Initialization complete.');
+      debugPrint('[HamsaSDK] Initialization complete.');
       _updateStatus(HamsaConnectionStatus.connected);
       _isPaused = false;
 
-      debugPrint('[HamsaSDK] ✅ CALL CONNECTED — waiting for agent to speak.');
+      debugPrint('[HamsaSDK] CALL CONNECTED — waiting for agent to speak.');
       debugPrint('[HamsaSDK] ═══════════════════════════════════════════════');
     } catch (e) {
-      debugPrint('[HamsaSDK] ❌ CALL START FAILED: $e');
+      debugPrint('[HamsaSDK] CALL START FAILED: $e');
       debugPrint('[HamsaSDK] ═══════════════════════════════════════════════');
       _updateStatus(HamsaConnectionStatus.error);
       onError?.call(e.toString());
@@ -197,7 +197,7 @@ class HamsaVoiceAgent {
   /// [callId] must match the [HamsaToolCall.callId] that was delivered via [onToolCall].
   /// [result] is the JSON-serialisable result object (e.g. {'selected_id': 'opt_1', ...}).
   void resolveToolCall(String callId, Map<String, dynamic> result) {
-    debugPrint('[HamsaSDK] ✅ resolveToolCall: callId=$callId result=$result');
+    debugPrint('[HamsaSDK] resolveToolCall: callId=$callId result=$result');
     _voiceService.resolveToolCall(callId, result);
   }
 

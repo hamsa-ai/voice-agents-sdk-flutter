@@ -176,7 +176,7 @@ class HamsaVoiceService {
       );
       debugPrint('[HamsaSDK] 📨 Sent user_input: $text');
     } catch (e) {
-      debugPrint('[HamsaSDK] ❌ Failed to send user_input: $e');
+      debugPrint('[HamsaSDK] Failed to send user_input: $e');
     }
   }
 

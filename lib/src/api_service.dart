@@ -82,7 +82,7 @@ class HamsaApiService {
           final data = json['data'] as Map<String, dynamic>;
           final token = data['liveKitAccessToken'] as String? ?? '';
           debugPrint(
-            '[HamsaSDK] ✅ participant-token OK '
+            '[HamsaSDK] participant-token OK '
             '(jobId: ${data['jobId']}, '
             'token: ${token.length > 20 ? '${token.substring(0, 20)}...' : token})',
           );
@@ -97,13 +97,13 @@ class HamsaApiService {
         } catch (_) {
           errorMsg = '${response.statusCode}: ${response.body}';
         }
-        debugPrint('[HamsaSDK] ❌ participant-token FAILED: $errorMsg');
+        debugPrint('[HamsaSDK] participant-token FAILED: $errorMsg');
         throw Exception(errorMsg);
       }
     } catch (e) {
       final duration = DateTime.now().difference(startTime);
       _updateLastLog(error: e.toString(), duration: duration);
-      debugPrint('[HamsaSDK] ❌ participant-token ERROR: $e');
+      debugPrint('[HamsaSDK] participant-token ERROR: $e');
       rethrow;
     }
   }
@@ -190,15 +190,15 @@ class HamsaApiService {
         } catch (_) {
           errorMsg = '${response.statusCode}: ${response.body}';
         }
-        debugPrint('[HamsaSDK] ❌ conversation-init FAILED: $errorMsg');
+        debugPrint('[HamsaSDK] conversation-init FAILED: $errorMsg');
         throw Exception(errorMsg);
       }
 
-      debugPrint('[HamsaSDK] ✅ conversation-init OK (${response.statusCode})');
+      debugPrint('[HamsaSDK] conversation-init OK (${response.statusCode})');
     } catch (e) {
       final duration = DateTime.now().difference(startTime);
       _updateLastLog(error: e.toString(), duration: duration);
-      debugPrint('[HamsaSDK] ❌ conversation-init ERROR: $e');
+      debugPrint('[HamsaSDK] conversation-init ERROR: $e');
       rethrow;
     }
   }
