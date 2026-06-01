@@ -94,9 +94,9 @@ class HamsaVoiceService {
 
         final Map<String, dynamic> args = _safeDecodeArgs(data.payload);
         debugPrint(
-          '[HamsaSDK] ⚡ RECEIVED RPC TOOL CALL: $toolName (callId: $callId)',
+          '[HamsaSDK] RECEIVED RPC TOOL CALL: $toolName (callId: $callId)',
         );
-        debugPrint('[HamsaSDK] ⚡ PAYLOAD: $args');
+        debugPrint('[HamsaSDK] PAYLOAD: $args');
 
         onToolCall?.call(toolName, args, callId);
 
@@ -174,7 +174,7 @@ class HamsaVoiceService {
         data,
         reliable: true,
       );
-      debugPrint('[HamsaSDK] 📨 Sent user_input: $text');
+      debugPrint('[HamsaSDK] Sent user_input: $text');
     } catch (e) {
       debugPrint('[HamsaSDK] Failed to send user_input: $e');
     }

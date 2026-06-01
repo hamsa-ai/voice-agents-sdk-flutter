@@ -106,7 +106,7 @@ class HamsaVoiceAgent {
       if (onToolCall != null) {
         _voiceService.onToolCall = (name, args, callId) {
           debugPrint(
-            '[HamsaSDK] 🔔 Tool call received: $name (callId: $callId)',
+            '[HamsaSDK] Tool call received: $name (callId: $callId)',
           );
           onToolCall!.call(
             HamsaToolCall(name: name, args: args, callId: callId),
@@ -132,7 +132,7 @@ class HamsaVoiceAgent {
             .join('\n      ');
 
         debugPrint(
-          '[HamsaSDK] 🛰  Room Radar (${participants.length} remotes):\n      $info',
+          '[HamsaSDK] Room Radar (${participants.length} remotes):\n      $info',
         );
       });
 
@@ -173,7 +173,7 @@ class HamsaVoiceAgent {
     Map<String, dynamic> result,
   ) async {
     _voiceService.resolveToolCall(callId, result);
-    debugPrint('[HamsaSDK] 📤 Tool result resolved: $callId');
+    debugPrint('[HamsaSDK] Tool result resolved: $callId');
   }
 
   /// Stops the current conversation and releases resources.
@@ -209,24 +209,24 @@ class HamsaVoiceAgent {
   // ── Audio controls ──────────────────────────────────────────────────────────
 
   Future<void> pause() async {
-    debugPrint('[HamsaSDK] ⏸  pause()');
+    debugPrint('[HamsaSDK] pause()');
     await _voiceService.pause();
     _isPaused = true;
   }
 
   Future<void> resume() async {
-    debugPrint('[HamsaSDK] ▶️  resume()');
+    debugPrint('[HamsaSDK] resume()');
     await _voiceService.resume();
     _isPaused = false;
   }
 
   Future<void> setMuted(bool muted) async {
-    debugPrint('[HamsaSDK] 🎙  setMuted($muted)');
+    debugPrint('[HamsaSDK] setMuted($muted)');
     await _voiceService.setMicrophoneMuted(muted);
   }
 
   Future<void> setSpeakerphoneOn(bool enabled) async {
-    debugPrint('[HamsaSDK] 🔊  setSpeakerphoneOn($enabled)');
+    debugPrint('[HamsaSDK] setSpeakerphoneOn($enabled)');
     await _voiceService.setSpeakerphoneOn(enabled);
   }
 
@@ -243,14 +243,14 @@ class HamsaVoiceAgent {
   // ── Internal ────────────────────────────────────────────────────────────────
 
   void _updateStatus(HamsaConnectionStatus newStatus) {
-    debugPrint('[HamsaSDK] 🔄 Status: $_status → $newStatus');
+    debugPrint('[HamsaSDK] Status: $_status → $newStatus');
     _status = newStatus;
     onConnectionStatusChanged?.call(newStatus);
   }
 
   void _updateAgentState(HamsaAgentState newState) {
     if (_agentState != newState) {
-      debugPrint('[HamsaSDK] 🔄 AgentState: $_agentState → $newState');
+      debugPrint('[HamsaSDK] AgentState: $_agentState → $newState');
     }
     _agentState = newState;
     onAgentStateChanged?.call(newState);
@@ -262,7 +262,7 @@ class HamsaVoiceAgent {
     // ── Room disconnected ──────────────────────────────────────────────────
     _listener!.on<RoomDisconnectedEvent>((event) {
       debugPrint(
-        '[HamsaSDK] 🔌 Room disconnected '
+        '[HamsaSDK] Room disconnected '
         '(reason: ${event.reason})',
       );
       _updateStatus(HamsaConnectionStatus.disconnected);
@@ -277,7 +277,7 @@ class HamsaVoiceAgent {
       final isAgentSpeaking = remoteSpeakers.isNotEmpty;
       if (isAgentSpeaking) {
         debugPrint(
-          '[HamsaSDK] 🗣  Agent speaking: '
+          '[HamsaSDK] Agent speaking: '
           '${remoteSpeakers.map((p) => p.identity).join(', ')}',
         );
       }
@@ -289,14 +289,14 @@ class HamsaVoiceAgent {
     // ── Track subscribed — CRITICAL: must call .enable() for audio ─────────
     _listener!.on<TrackPublishedEvent>((event) {
       debugPrint(
-        '[HamsaSDK] 📤 Track published by ${event.participant.identity}: '
+        '[HamsaSDK] Track published by ${event.participant.identity}: '
         '${event.publication.sid} (${event.publication.kind})',
       );
     });
 
     _listener!.on<TrackSubscribedEvent>((event) {
       debugPrint(
-        '[HamsaSDK] 📡 Track subscribed: ${event.track.sid} '
+        '[HamsaSDK] Track subscribed: ${event.track.sid} '
         'from ${event.participant.identity} (${event.track.kind})',
       );
 
@@ -306,23 +306,23 @@ class HamsaVoiceAgent {
         try {
           (audioTrack as dynamic).start();
         } catch (_) {}
-        debugPrint('[HamsaSDK] 🔊 Remote audio track ENABLED & STARTED');
+        debugPrint('[HamsaSDK] Remote audio track ENABLED & STARTED');
       }
     });
 
     // ── Local Diagnostics ──────────────────────────────────────────────────
     final local = room.localParticipant;
     if (local != null) {
-      debugPrint('[HamsaSDK] 🎙  Local participant: ${local.identity}');
+      debugPrint('[HamsaSDK] Local participant: ${local.identity}');
       debugPrint(
-        '[HamsaSDK] 🎙  Local tracks published: ${local.audioTrackPublications.length} audio',
+        '[HamsaSDK] Local tracks published: ${local.audioTrackPublications.length} audio',
       );
     }
 
     // ── Track unsubscribed ─────────────────────────────────────────────────
     _listener!.on<TrackUnsubscribedEvent>((event) {
       debugPrint(
-        '[HamsaSDK] 📡 Track unsubscribed: '
+        '[HamsaSDK] Track unsubscribed: '
         'kind=${event.track.kind} '
         'from=${event.participant.identity}',
       );
@@ -331,7 +331,7 @@ class HamsaVoiceAgent {
     // ── Remote participant joined ───────────────────────────────────────────
     _listener!.on<ParticipantConnectedEvent>((event) {
       debugPrint(
-        '[HamsaSDK] 👤 Remote participant joined: '
+        '[HamsaSDK] Remote participant joined: '
         '${event.participant.identity} '
         '(sid: ${event.participant.sid})',
       );
@@ -340,7 +340,7 @@ class HamsaVoiceAgent {
     // ── Remote participant left ────────────────────────────────────────────
     _listener!.on<ParticipantDisconnectedEvent>((event) {
       debugPrint(
-        '[HamsaSDK] 👤 Remote participant left: '
+        '[HamsaSDK] Remote participant left: '
         '${event.participant.identity}',
       );
     });
@@ -350,7 +350,7 @@ class HamsaVoiceAgent {
       try {
         final text = utf8.decode(event.data);
         debugPrint(
-          '[HamsaSDK] 📨 Data received from '
+          '[HamsaSDK] Data received from '
           '${event.participant?.identity}: $text',
         );
 
@@ -408,7 +408,7 @@ class HamsaVoiceAgent {
       // Extract room ID from video.room
       final roomId = map['video']?['room'] as String?;
       if (roomId != null) {
-        debugPrint('[HamsaSDK] 🏠 LiveKit Room ID: $roomId');
+        debugPrint('[HamsaSDK] LiveKit Room ID: $roomId');
       }
 
       final agents = map['roomConfig']?['agents'] as List?;
