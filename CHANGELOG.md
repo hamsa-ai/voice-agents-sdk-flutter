@@ -1,3 +1,9 @@
+## 0.1.4
+
+* Code quality: removed unused `_lastToolTime` field.
+* Code quality: replaced null-check spread with null-aware `...?` spread.
+* Code quality: improved doc comments on public enums and model classes.
+
 ## 0.1.3
 
 * Added `connectWithToken` — connect directly with a pre-fetched LiveKit token.
