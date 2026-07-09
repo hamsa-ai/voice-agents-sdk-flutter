@@ -1,8 +1,17 @@
 import 'dart:convert';
+import 'dart:developer' as dev;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'models.dart';
 import 'calls_config.dart';
+
+// Simple helper — routes to dart:developer log in debug mode only.
+// Unlike debugPrint, this isn't throttled and won't truncate long strings.
+void _sdkLog(String message) {
+  if (kDebugMode) {
+    dev.log(message, name: 'HamsaSDK');
+  }
+}
 
 class HamsaApiService {
   final String apiKey;
@@ -45,11 +54,11 @@ class HamsaApiService {
     });
     final startTime = DateTime.now();
 
-    debugPrint('[HamsaSDK] ┌── POST participant-token ──────────────────────');
-    debugPrint('[HamsaSDK] │  URL    : $url');
-    debugPrint('[HamsaSDK] │  Headers: $_safeHeaders');
-    debugPrint('[HamsaSDK] │  Body   : $body');
-    debugPrint('[HamsaSDK] └────────────────────────────────────────────────');
+    _sdkLog('┌── POST participant-token ──────────────────────');
+    _sdkLog('│  URL    : $url');
+    _sdkLog('│  Headers: $_safeHeaders');
+    _sdkLog('│  Body   : $body');
+    _sdkLog('└────────────────────────────────────────────────');
 
     _addPendingLog(method: 'POST', url: url, body: body);
 
@@ -61,14 +70,10 @@ class HamsaApiService {
       );
       final duration = DateTime.now().difference(startTime);
 
-      debugPrint(
-        '[HamsaSDK] ┌── participant-token response (${duration.inMilliseconds}ms) ─',
-      );
-      debugPrint('[HamsaSDK] │  Status: ${response.statusCode}');
-      debugPrint('[HamsaSDK] │  Body  : ${response.body}');
-      debugPrint(
-        '[HamsaSDK] └────────────────────────────────────────────────',
-      );
+      _sdkLog('┌── participant-token response (${duration.inMilliseconds}ms) ─');
+      _sdkLog('│  Status: ${response.statusCode}');
+      _sdkLog('│  Body  : ${response.body}');
+      _sdkLog('└────────────────────────────────────────────────');
 
       _updateLastLog(
         statusCode: response.statusCode,
@@ -81,8 +86,8 @@ class HamsaApiService {
         if (json['success'] == true && json['data'] != null) {
           final data = json['data'] as Map<String, dynamic>;
           final token = data['liveKitAccessToken'] as String? ?? '';
-          debugPrint(
-            '[HamsaSDK] participant-token OK '
+          _sdkLog(
+            'participant-token OK '
             '(jobId: ${data['jobId']}, '
             'token: ${token.length > 20 ? '${token.substring(0, 20)}...' : token})',
           );
@@ -97,13 +102,13 @@ class HamsaApiService {
         } catch (_) {
           errorMsg = '${response.statusCode}: ${response.body}';
         }
-        debugPrint('[HamsaSDK] participant-token FAILED: $errorMsg');
+        _sdkLog('participant-token FAILED: $errorMsg');
         throw Exception(errorMsg);
       }
     } catch (e) {
       final duration = DateTime.now().difference(startTime);
       _updateLastLog(error: e.toString(), duration: duration);
-      debugPrint('[HamsaSDK] participant-token ERROR: $e');
+      _sdkLog('participant-token ERROR: $e');
       rethrow;
     }
   }
@@ -119,7 +124,7 @@ class HamsaApiService {
   }) async {
     final url = '$_baseUrl/conversation-init';
 
-    // Log body without the enormous tools/prompt strings to keep output readable.
+    // Log body without the enormous tools/prompt strings to keep output readable
     final safeParams = extraParams == null
         ? null
         : {
@@ -151,11 +156,11 @@ class HamsaApiService {
 
     final startTime = DateTime.now();
 
-    debugPrint('[HamsaSDK] ┌── POST conversation-init ──────────────────────');
-    debugPrint('[HamsaSDK] │  URL    : $url');
-    debugPrint('[HamsaSDK] │  Headers: $_safeHeaders');
-    debugPrint('[HamsaSDK] │  Body   : $logBody');
-    debugPrint('[HamsaSDK] └────────────────────────────────────────────────');
+    _sdkLog('┌── POST conversation-init ──────────────────────');
+    _sdkLog('│  URL    : $url');
+    _sdkLog('│  Headers: $_safeHeaders');
+    _sdkLog('│  Body   : $logBody');
+    _sdkLog('└────────────────────────────────────────────────');
 
     _addPendingLog(method: 'POST', url: url, body: logBody);
 
@@ -167,14 +172,10 @@ class HamsaApiService {
       );
       final duration = DateTime.now().difference(startTime);
 
-      debugPrint(
-        '[HamsaSDK] ┌── conversation-init response (${duration.inMilliseconds}ms) ─',
-      );
-      debugPrint('[HamsaSDK] │  Status: ${response.statusCode}');
-      debugPrint('[HamsaSDK] │  Body  : ${response.body}');
-      debugPrint(
-        '[HamsaSDK] └────────────────────────────────────────────────',
-      );
+      _sdkLog('┌── conversation-init response (${duration.inMilliseconds}ms) ─');
+      _sdkLog('│  Status: ${response.statusCode}');
+      _sdkLog('│  Body  : ${response.body}');
+      _sdkLog('└────────────────────────────────────────────────');
 
       _updateLastLog(
         statusCode: response.statusCode,
@@ -190,15 +191,15 @@ class HamsaApiService {
         } catch (_) {
           errorMsg = '${response.statusCode}: ${response.body}';
         }
-        debugPrint('[HamsaSDK] conversation-init FAILED: $errorMsg');
+        _sdkLog('conversation-init FAILED: $errorMsg');
         throw Exception(errorMsg);
       }
 
-      debugPrint('[HamsaSDK] conversation-init OK (${response.statusCode})');
+      _sdkLog('conversation-init OK (${response.statusCode})');
     } catch (e) {
       final duration = DateTime.now().difference(startTime);
       _updateLastLog(error: e.toString(), duration: duration);
-      debugPrint('[HamsaSDK] conversation-init ERROR: $e');
+      _sdkLog('conversation-init ERROR: $e');
       rethrow;
     }
   }

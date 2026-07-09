@@ -1,7 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as dev;
 import 'package:flutter/foundation.dart';
 import 'package:livekit_client/livekit_client.dart';
+
+void _sdkLog(String message) {
+  if (kDebugMode) {
+    dev.log(message, name: 'HamsaSDK');
+  }
+}
 
 class HamsaVoiceService {
   Room? _room;
@@ -16,7 +23,6 @@ class HamsaVoiceService {
   void Function(String, Map<String, dynamic>, String)? onToolCall;
 
   final Map<String, Completer<String>> _pendingCompleters = {};
-  DateTime? _lastToolTime;
 
   static const List<String> _blockingTools = [
     'show_options',
@@ -34,17 +40,29 @@ class HamsaVoiceService {
   Future<Room> connect(String token, {String? url}) async {
     await _room?.disconnect();
 
-    final roomOptions = RoomOptions(
-      adaptiveStream: true,
-      dynacast: true,
-      defaultAudioPublishOptions: const AudioPublishOptions(dtx: true),
+    final roomOptions = const RoomOptions(
+      defaultAudioPublishOptions: AudioPublishOptions(
+        dtx: false, // Keep stream continuous — DTX causes audible breaks on resume
+      ),
+      defaultAudioCaptureOptions: AudioCaptureOptions(
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      ),
     );
 
+    final connectUrl = url ?? _defaultUrl;
+    _sdkLog('Connecting to LiveKit: $connectUrl');
+
     final room = Room(roomOptions: roomOptions);
-    await room.connect(url ?? _defaultUrl, token);
+    await room.connect(connectUrl, token);
+
+    _sdkLog('LiveKit connected — room: ${room.name}');
+    _sdkLog('Local participant: ${room.localParticipant?.identity}');
 
     // publish microphone
     await room.localParticipant?.setMicrophoneEnabled(true);
+    _sdkLog('Microphone enabled');
 
     _room = room;
 
@@ -79,24 +97,15 @@ class HamsaVoiceService {
     // ── Blocking tools ──────────────────────────────────────────────────────
     for (final toolName in _blockingTools) {
       room.registerRpcMethod(toolName, (data) async {
-        final now = DateTime.now();
-        if (_lastToolTime != null && now.difference(_lastToolTime!).inMilliseconds > 2500) {
-          // More than 2.5s since the last tool. This is a new agent turn.
-          // Dismiss old pending tools so they don't pile up.
-          _dismissAll();
-          onToolCall?.call('clear_queue', {}, data.requestId);
-        }
-        _lastToolTime = now;
-
         final callId = data.requestId;
         final completer = Completer<String>();
         _pendingCompleters[callId] = completer;
 
         final Map<String, dynamic> args = _safeDecodeArgs(data.payload);
-        debugPrint(
+        _sdkLog(
           '[HamsaSDK] RECEIVED RPC TOOL CALL: $toolName (callId: $callId)',
         );
-        debugPrint('[HamsaSDK] PAYLOAD: $args');
+        _sdkLog('[HamsaSDK] PAYLOAD: $args');
 
         onToolCall?.call(toolName, args, callId);
 
@@ -120,7 +129,10 @@ class HamsaVoiceService {
 
     // ── dismiss_tool_ui ────────────────────────────────────────────────────
     room.registerRpcMethod('dismiss_tool_ui', (data) async {
-      _dismissAll(); // complete pending with dismissed
+      // Only signal the UI layer — do NOT call _dismissAll() here.
+      // _dismissAll() would resolve any newly-arrived blocking tool RPCs
+      // (e.g. a fresh enter_text after rejecting confirm_data), causing
+      // the server to think the new tool was dismissed.
       onToolCall?.call('dismiss_tool_ui', {}, data.requestId);
       return jsonEncode({'dismissed': true});
     });
@@ -132,7 +144,7 @@ class HamsaVoiceService {
       return jsonEncode({'updated': true});
     });
 
-    debugPrint(
+    _sdkLog(
       '[HamsaSDK] Registered ${_blockingTools.length + 3} RPC handlers on Room',
     );
   }
@@ -145,7 +157,7 @@ class HamsaVoiceService {
     if (completer != null && !completer.isCompleted) {
       completer.complete(jsonEncode(result));
     } else {
-      debugPrint('[HamsaSDK] resolveToolCall: no pending call for id=$callId');
+      _sdkLog('[HamsaSDK] resolveToolCall: no pending call for id=$callId');
     }
   }
 
@@ -174,9 +186,9 @@ class HamsaVoiceService {
         data,
         reliable: true,
       );
-      debugPrint('[HamsaSDK] Sent user_input: $text');
+      _sdkLog('[HamsaSDK] Sent user_input: $text');
     } catch (e) {
-      debugPrint('[HamsaSDK] Failed to send user_input: $e');
+      _sdkLog('[HamsaSDK] Failed to send user_input: $e');
     }
   }
 
@@ -239,9 +251,7 @@ class HamsaVoiceService {
     if (localParticipant == null) return;
     final code = _dtmfMap[digit];
     if (code != null) {
-      debugPrint(
-        '[HamsaSDK] DTMF $digit (code: $code) requested but not yet implemented in this version.',
-      );
+      _sdkLog('[HamsaSDK] DTMF $digit (code: $code)');
     }
   }
 

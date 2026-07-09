@@ -3,7 +3,6 @@
 /// Mirrors the web SDK's environment config pattern.
 /// Environment is detected via --dart-define=ENV=production|staging|dev
 /// or falls back to kDebugMode (dev) / release (production).
-library;
 
 import 'package:flutter/foundation.dart';
 

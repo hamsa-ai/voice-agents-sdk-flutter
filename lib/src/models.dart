@@ -1,16 +1,16 @@
-/// connection states for the Hamsa voice agent
+/// Connection states for a Hamsa voice agent session.
 enum HamsaConnectionStatus { disconnected, connecting, connected, error }
 
-/// agent interaction states
+/// Interaction states reported by the voice agent during a call.
 enum HamsaAgentState { idle, initializing, listening, thinking, speaking }
 
-/// event data for call started
+/// Payload delivered with a call-started event.
 class HamsaCallStartedData {
   final String jobId;
   HamsaCallStartedData({required this.jobId});
 }
 
-/// API log entry for troubleshooting
+/// A single API request/response log entry, useful for debugging call setup.
 class HamsaApiLog {
   final DateTime timestamp;
   final String method;
